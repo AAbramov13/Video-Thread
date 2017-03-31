@@ -16,7 +16,7 @@
 #include <opencv2/xfeatures2d/cuda.hpp>
 #include "opencv2/highgui.hpp"
 
-
+//initial
 using namespace std;
 using namespace cv;
 using namespace cv::xfeatures2d;
