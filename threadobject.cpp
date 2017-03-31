@@ -49,7 +49,7 @@ void ThreadObject::run()
         ba = m_frame_name.toLocal8Bit();
         std::string frame_name = std::string(ba.data(), ba.size());
 
-
+//
         VideoCapture vcap;
 //        Mat image;
         Mat image(imread("/home/andrei/qt_proj/"+addressCam+".jpg"));
