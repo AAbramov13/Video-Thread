@@ -4,10 +4,6 @@
 #include <QMutex>
 
 #include <opencv2/opencv.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/cudaarithm.hpp>
-#include <opencv2/cudaobjdetect.hpp>
-#include <opencv2/cudaimgproc.hpp>
 
 using namespace std;
 using namespace cv;
@@ -40,6 +36,7 @@ void ThreadObject::run()
     while(m_running)
     {
 
+        cout << "Start 1st tread."<< endl;
         //преобразование из Qstring в string
 
         QByteArray ba = m_message.toLocal8Bit();
@@ -51,27 +48,28 @@ void ThreadObject::run()
 
 //
         VideoCapture vcap;
-//        Mat image;
-        Mat image(imread("/home/andrei/qt_proj/"+addressCam+".jpg"));
+        Mat image;
+       // Mat image(imread("/home/abramov/Documents/"+addressCam+".jpg"));
 
 
-//        if(!vcap.open(addressCam)) {
-//            std::cout << "Error opening video 2 stream or file" << endl;
-//    //        return -1;
-//    //        break;
-//        }
+        if(!vcap.open(addressCam)) {
+            std::cout << "Error opening video 2 stream or file" << endl;
+    //        return -1;
+    //        break;
+        }
 
+        cout << "start send image"<< endl;
         while(m_running){
-//        if(!vcap.read(image)) {
-//            cout << "No frame" << endl;
-//            waitKey();
-//        }
+        if(!vcap.read(image)) {
+            cout << "No frame" << endl;
+            waitKey();
+        }
         emit sendImage(image);
         imshow(frame_name, image);
         }
-        if(m_running!=true){
-            destroyWindow(frame_name);
-        }
+//        if(m_running!=true){
+//            destroyWindow(frame_name);
+//        }
     }
     emit finished();
 }

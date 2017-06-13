@@ -63,6 +63,12 @@ Mat StichingThread::image_2() const
 }
 void StichingThread::run()
 {
+    cout << "start 2nd tread"<<endl;
+
+    countBufferImage =0;
+    maxCountBufferImg=40;
+    bufferImg1[maxCountBufferImg];
+    bufferImg2[maxCountBufferImg];
     while(m_running){
             getRoiRegion(m_image,m_image_2);
     }
@@ -73,6 +79,8 @@ void showFloatVector(vector<Point2f> v);
 
 void StichingThread::getRoiRegion(Mat img_1, Mat img_2)
 {
+    cout<<"get roi region"<<endl;
+
     //всякая хрень с размерностью
     int height_left_image = img_1.rows;
     int width_left_image = img_1.cols;
@@ -97,7 +105,7 @@ void StichingThread::getRoiRegion(Mat img_1, Mat img_2)
     Mat img_object = img_1(interested_region_left_image);
     Mat img_scene = img_2(interested_region_right_image);
 
-    findDescriptors(img_object,img_scene);
+    createBuffer(img_object,img_scene);
 }
 
 int StichingThread::minCount(int x, int y)
@@ -107,7 +115,54 @@ int StichingThread::minCount(int x, int y)
     else if (x < y) return x;
 }
 
-void StichingThread::findDescriptors(Mat img_object, Mat img_scene)
+void StichingThread::createBuffer(Mat img1, Mat img2)
+{
+    cout << "start create buffer"<<endl;
+
+    if(countBufferImage<maxCountBufferImg){
+    bufferImg1[countBufferImage] = img1;
+    bufferImg2[countBufferImage] = img2;
+    countBufferImage++;
+    }
+    else{
+        createCompairArray(bufferImg1,bufferImg2);
+    }
+
+}
+
+void StichingThread::createCompairArray(Mat bufferImg1[], Mat bufferImg2[])
+{
+    cout << "start compair max count"<<endl;
+
+    int k = 0;
+    for(int i = 0; i < maxCountBufferImg;i++){
+        for (int j = 0; j < maxCountBufferImg;j++){
+            countDotArray[k][0]= findDescriptors(bufferImg1[i],bufferImg2[j]);
+            countDotArray[k][1]= i;
+            countDotArray[k][2] = j;
+            k++;
+        }
+    }
+
+    compairCountControlPoints(countDotArray);
+}
+
+void StichingThread::compairCountControlPoints(int array[][3])
+{
+    int maxCountControlPoints[3]={0,0,0};
+    for(int i = 0; i< maxCountBufferImg^2;i++){
+        if(array[i][0]>maxCountControlPoints[0]){
+            maxCountControlPoints[0] = array[i][0];
+            maxCountControlPoints[1] = array[i][1];
+            maxCountControlPoints[2] = array[i][2];
+        }
+    }
+
+cout<<maxCountControlPoints[0]<<endl;
+
+}
+
+int StichingThread::findDescriptors(Mat img_object, Mat img_scene)
 {
     int minHessian = 400;
 
@@ -133,9 +188,6 @@ void StichingThread::findDescriptors(Mat img_object, Mat img_scene)
         if( dist > getMax_dist() ) setMax_dist(dist);
     }
 
-//    printf("-- Max dist : %f \n", max_dist );
-//    printf("-- Min dist : %f \n", min_dist );
-
     vector< DMatch > good_matches;
 
     for( int i = 0; i < descriptors_object.rows; i++ )
@@ -154,25 +206,26 @@ void StichingThread::findDescriptors(Mat img_object, Mat img_scene)
     vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
 
     vector <Point2f> good_key2points_object,good_key2points_scene;
-    vector <Point2i> good_keyInt_object, good_keyInt_scene;
+//    vector <Point2i> good_keyInt_object, good_keyInt_scene;
 
     for(int i = 0; i < good_matches.size(); i++){
         good_key2points_object.push_back(keypoints_object[good_matches[i].queryIdx].pt);
         good_key2points_scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
     }
 
+    return good_matches.size();
 
-    good_key2points_object = changeBasicZero(good_key2points_object,good_matches.size());
-    good_key2points_scene = changeBasicZero(good_key2points_scene,good_matches.size());
+   // good_key2points_object = changeBasicZero(good_key2points_object,good_matches.size());
+   // good_key2points_scene = changeBasicZero(good_key2points_scene,good_matches.size());
 
-    showPoint2fVectors(good_key2points_object,"obj");
+   // showPoint2fVectors(good_key2points_object,"obj");
 
-//    good_key2points_object = changeVectorFloatToBinary(good_key2points_object);
-//    good_key2points_scene = changeVectorFloatToBinary(good_key2points_scene);
+   // good_key2points_object = changeVectorFloatToBinary(good_key2points_object);
+   // good_key2points_scene = changeVectorFloatToBinary(good_key2points_scene);
 
-//    showFloatVector(good_key2points_scene);
+    //showFloatVector(good_key2points_scene);
 
-    useMatHomogeneus(keypoints_object, keypoints_scene, good_matches, img_matches, img_object);
+    //useMatHomogeneus(keypoints_object, keypoints_scene, good_matches, img_matches, img_object);
 }
 
 void showFloatVector(vector<Point2f> v)
@@ -240,8 +293,18 @@ vector<Point2f> StichingThread::changeBasicZero(vector<Point2f> v, int size)
 vector<Point2f> StichingThread::changeVectorFloatToBinary(vector<Point2f> v)
 {
     for(int i = 0; i < v.size(); i++){
-        v[i].x = changeFloatToBinary(v[i].x);
-        v[i].y = changeFloatToBinary(v[i].y);
+        if(v[i].x<0){
+            v[i].x = v[i].x*(-1);
+            v[i].x = changeFloatToBinary(v[i].x);
+        }else{
+            v[i].x = changeFloatToBinary(v[i].x);
+        }
+        if(v[i].y<0){
+            v[i].y = v[i].y*(-1);
+            v[i].y = changeFloatToBinary(v[i].y);
+        }else{
+            v[i].y = changeFloatToBinary(v[i].y);
+        }
     }
     return v;
 }
@@ -257,7 +320,6 @@ vector<Point2i> StichingThread::changeVectorIntToBinary(vector<Point2i> v)
 
 float StichingThread::changeFloatToBinary(float f)
 {
-
     int  integral, binaryInt = 0, i = 1;
     float  binaryFract = 0, k =0.1f, fractional, temp1, binaryTotal;
 
@@ -285,7 +347,7 @@ float StichingThread::changeFloatToBinary(float f)
         }
 
         //Combining both the integral and fractional binary value.
-        binaryTotal = binaryInt +binaryFract;
+        binaryTotal = binaryInt+binaryFract;
 
         return binaryTotal;
 }
@@ -351,9 +413,9 @@ void StichingThread::useMatHomogeneus(vector<KeyPoint> keypoints_object, vector<
     obj_corners[3] = cvPoint( 0, img_object.rows );
 
 
-    std::vector<Point2f> scene_corners(4);
+    //std::vector<Point2f> scene_corners(4);
     //отбражаем углы целевого объекта, используя найденное преобразование, на сцену
-    perspectiveTransform( obj_corners, scene_corners, H);
+    //erspectiveTransform( obj_corners, scene_corners, H);
 
     //соединение отображенных углов
 //    line( img_matches, scene_corners[0] + Point2f( img_object.cols, 0), scene_corners[1] + Point2f( img_object.cols, 0), Scalar(0, 255, 0), 4 );

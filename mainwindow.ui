@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>1</string>
+     <string>http://admin:MjcwNDE5ODcxMTE=@192.168.1.241:8080/stream/getvideo?.mjpeg</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="name_cam1">
@@ -50,7 +50,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>2</string>
+     <string>rtsp://admin:admin@192.168.1.242:554/live/sub</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="name_cam2">
@@ -112,7 +112,7 @@
      <x>0</x>
      <y>0</y>
      <width>662</width>
-     <height>19</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
