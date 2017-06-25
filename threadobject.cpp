@@ -36,26 +36,21 @@ void ThreadObject::run()
     while(m_running)
     {
 
-        cout << "Start 1st tread."<< endl;
-        //преобразование из Qstring в string
+        cout << "Start tread."<< endl;
 
         QByteArray ba = m_message.toLocal8Bit();
         std::string addressCam = std::string(ba.data(), ba.size());
 
-        //обязательно для каждого фрейма свое имя окна. иначе они будут в одном вылазить
         ba = m_frame_name.toLocal8Bit();
         std::string frame_name = std::string(ba.data(), ba.size());
-
-//
+        
         VideoCapture vcap;
         Mat image;
-       // Mat image(imread("/home/abramov/Documents/"+addressCam+".jpg"));
-
-
+       
         if(!vcap.open(addressCam)) {
             std::cout << "Error opening video 2 stream or file" << endl;
-    //        return -1;
-    //        break;
+            return -1;
+            break;
         }
 
         cout << "start send image"<< endl;
@@ -67,9 +62,9 @@ void ThreadObject::run()
         emit sendImage(image);
         imshow(frame_name, image);
         }
-//        if(m_running!=true){
-//            destroyWindow(frame_name);
-//        }
+        if(m_running!=true){
+            destroyWindow(frame_name);
+        }
     }
     emit finished();
 }
