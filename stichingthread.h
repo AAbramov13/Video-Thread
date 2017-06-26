@@ -1,5 +1,5 @@
-#ifndef STICHINGTHREAD_H
-#define STICHINGTHREAD_H
+#ifndef SYNCHROTHREAD_H
+#define SYNCHROTHREAD_H
 
 #include <QObject>
 
@@ -9,7 +9,7 @@
 using namespace std;
 using namespace cv;
 
-class StichingThread : public QObject
+class SynchroThread : public QObject
 {
     Q_OBJECT
 
@@ -27,7 +27,7 @@ class StichingThread : public QObject
     //[][0-кол-во векторов;1-id img1;2-id img2]
 
 public:
-    StichingThread();
+    SynchroThread();
     bool running() const;
     Mat image() const;
     Mat image_2() const;
@@ -70,4 +70,4 @@ public slots:
     void useMatHomogeneus(vector<KeyPoint> keypoints_object,vector<KeyPoint> keypoints_scene,vector< DMatch > good_matches,Mat img_matches,Mat img_object);
 };
 
-#endif // STICHINGTHREAD_H
+#endif // SYNCHROTHREAD_H
