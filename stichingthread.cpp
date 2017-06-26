@@ -29,46 +29,46 @@ using namespace cv;
 using namespace cv::xfeatures2d;
 
 
-double StichingThread::getMax_dist() const
+double SynchroThread::getMax_dist() const
 {
     return max_dist;
 }
 
-void StichingThread::setMax_dist(double value)
+void SynchroThread::setMax_dist(double value)
 {
     max_dist = value;
 }
 
-double StichingThread::getMin_dist() const
+double SynchroThread::getMin_dist() const
 {
     return min_dist;
 }
 
-void StichingThread::setMin_dist(double value)
+void SynchroThread::setMin_dist(double value)
 {
     min_dist = value;
 }
 
-StichingThread::StichingThread()
+SynchroThread::StichingThread()
 {
 
 }
 
-bool StichingThread::running() const
+bool SynchroThread::running() const
 {
     return m_running;
 }
 
-Mat StichingThread::image() const
+Mat SynchroThread::image() const
 {
     return m_image;
 }
 
-Mat StichingThread::image_2() const
+Mat SynchroThread::image_2() const
 {
     return m_image_2;
 }
-void StichingThread::run()
+void SynchroThread::run()
 {
     cout << "start 2nd tread"<<endl;
 
@@ -82,26 +82,18 @@ void StichingThread::run()
 
 void showFloatVector(vector<Point2f> v);
 
-void StichingThread::getRoiRegion(Mat img_1, Mat img_2)
+void SynchroThread::getRoiRegion(Mat img_1, Mat img_2)
 {
     //всякая хрень с размерностью
     int height_left_image = img_1.rows;
     int width_left_image = img_1.cols;
-
     int height_right_image = img_2.rows;
-//    int width_right_image = img_2.cols;
-
     int width_interested_image = width_left_image/3;
     int heighImage = minCount(height_left_image,height_right_image);
-
     int x_left_image = width_left_image - width_interested_image;
     int y_left_image = 0;
-
     int x_right_image = 0;
     int y_right_image = 0;
-
-    //--------
-    //вырезаем интересующие нас регионы
     Rect interested_region_left_image = Rect(x_left_image,y_left_image,width_interested_image,heighImage);
     Rect interested_region_right_image = Rect(x_right_image,y_right_image,width_interested_image,heighImage);
 
@@ -111,14 +103,14 @@ void StichingThread::getRoiRegion(Mat img_1, Mat img_2)
     createBuffer(img_object,img_scene);
 }
 
-int StichingThread::minCount(int x, int y)
+int SynchroThread::minCount(int x, int y)
 {
     if(x == y) return x;
     else if(x > y) return y;
     else if (x < y) return x;
 }
 
-void StichingThread::createBuffer(Mat img1, Mat img2)
+void SynchroThread::createBuffer(Mat img1, Mat img2)
 {
     char c;
     if(countBufferImage<maxCountBufferImg){
@@ -134,7 +126,7 @@ void StichingThread::createBuffer(Mat img1, Mat img2)
 
 }
 
-void StichingThread::caompairImage(Mat bufferImg1[], Mat bufferImg2[])
+void SynchroThread::caompairImage(Mat bufferImg1[], Mat bufferImg2[])
 {
     char c;
     int k = 0;
@@ -150,29 +142,21 @@ void StichingThread::caompairImage(Mat bufferImg1[], Mat bufferImg2[])
             k++;
         }
     }
-
-
     compairCountControlPoints(countDotArray);
-
-
 }
 
-int StichingThread::countHashAndHemming(Mat img1, Mat img2)
+int SynchroThread::countHashAndHemming(Mat img1, Mat img2)
 {
-
     IplImage* object = new IplImage(img1);
     IplImage* image = new IplImage(img2);
 
     // построим хэш
     int64 hashO = calcImageHash(object, true);
-    //cvWaitKey(0);
     int64 hashI = calcImageHash(image, false);
-
     // рассчитаем расстояние Хэмминга
     int64 dist = calcHammingDistance(hashO, hashI);
 
     return dist;
-
 }
 
 
@@ -188,22 +172,12 @@ int64 calcImageHash(IplImage* src, bool show_results)
         res = cvCreateImage( cvSize(8, 8), src->depth, src->nChannels);
         gray = cvCreateImage( cvSize(8, 8), IPL_DEPTH_8U, 1);
         bin = cvCreateImage( cvSize(8, 8), IPL_DEPTH_8U, 1);
-
-        // уменьшаем картинку
         cvResize(src, res);
-        // переводим в градации серого
         cvCvtColor(res, gray, CV_BGR2GRAY);
-        // вычисляем среднее
         CvScalar average = cvAvg(gray);
-        // получим бинарное изображение относительно среднего
-        // для этого воспользуемся пороговым преобразованием
         cvThreshold(gray, bin, average.val[0], 255, CV_THRESH_BINARY);
-
-        // построим хэш
         int64 hash = 0;
-
         int i=0;
-        // пробегаемся по всем пикселям изображения
         for( int y=0; y<bin->height; y++ ) {
                 uchar* ptr = (uchar*) (bin->imageData + y * bin->widthStep);
                 for( int x=0; x<bin->width; x++ ) {
@@ -214,16 +188,6 @@ int64 calcImageHash(IplImage* src, bool show_results)
                         i++;
                 }
         }
-
-
-        if(show_results){
-                // увеличенные картинки для отображения результатов
-                IplImage* dst3 = cvCreateImage( cvSize(128, 128), IPL_DEPTH_8U, 3);
-                IplImage* dst1 = cvCreateImage( cvSize(128, 128), IPL_DEPTH_8U, 1);
-                cvReleaseImage(&dst3);
-                cvReleaseImage(&dst1);
-        }
-
         // освобождаем ресурсы
         cvReleaseImage(&res);
         cvReleaseImage(&gray);
@@ -248,7 +212,7 @@ int64 calcHammingDistance(int64 x, int64 y)
 
 
 
-void StichingThread::createCompairArray(Mat bufferImg1[], Mat bufferImg2[])
+void SynchroThread::createCompairArray(Mat bufferImg1[], Mat bufferImg2[])
 {
     cout << "start compair max count"<<endl;
     char c;
@@ -271,7 +235,7 @@ void StichingThread::createCompairArray(Mat bufferImg1[], Mat bufferImg2[])
     compairCountControlPoints(countDotArray);
 }
 
-void StichingThread::compairCountControlPoints(int array[][3])
+void SynchroThread::compairCountControlPoints(int array[][3])
 {
     cout << "start compair control points"<<endl;
 
@@ -288,70 +252,47 @@ void StichingThread::compairCountControlPoints(int array[][3])
 
 }
 
-int StichingThread::findDescriptors(Mat img_object, Mat img_scene)
+int SynchroThread::findDescriptors(Mat img1, Mat img2)
 {
-    int minHessian = 400;
-
-     Ptr<SURF> detector = SURF::create( minHessian );
-
-    std::vector<KeyPoint> keypoints_object, keypoints_scene;
-    Mat descriptors_object, descriptors_scene;
-
-    detector->detectAndCompute( img_object, Mat(), keypoints_object, descriptors_object );
-    detector->detectAndCompute( img_scene, Mat(), keypoints_scene, descriptors_scene );
-
-    FlannBasedMatcher matcher;
-    vector< DMatch > matches;
-    matcher.match( descriptors_object, descriptors_scene, matches );
-
-    setMax_dist(0);
-    setMin_dist(100);
-
-    for( int i = 0; i < descriptors_object.rows; i++ )
-    {
-        double dist = matches[i].distance;
-        if( dist < getMin_dist() ) setMin_dist(dist);
-        if( dist > getMax_dist() ) setMax_dist(dist);
+     Mat homography;
+    FileStorage fs("../data/H1to3p.xml", FileStorage::READ);
+    fs.getFirstTopLevelNode() >> homography;
+    vector<KeyPoint> kpts1, kpts2;
+    Mat desc1, desc2;
+    Ptr<AKAZE> akaze = AKAZE::create();
+    akaze->detectAndCompute(img1, noArray(), kpts1, desc1);
+    akaze->detectAndCompute(img2, noArray(), kpts2, desc2);
+    BFMatcher matcher(NORM_HAMMING);
+    vector< vector<DMatch> > nn_matches;
+    matcher.knnMatch(desc1, desc2, nn_matches, 2);
+    vector<KeyPoint> matched1, matched2, inliers1, inliers2;
+    vector<DMatch> good_matches;
+    for(size_t i = 0; i < nn_matches.size(); i++) {
+        DMatch first = nn_matches[i][0];
+        float dist1 = nn_matches[i][0].distance;
+        float dist2 = nn_matches[i][1].distance;
+        if(dist1 < nn_match_ratio * dist2) {
+            matched1.push_back(kpts1[first.queryIdx]);
+            matched2.push_back(kpts2[first.trainIdx]);
+        }
     }
-
-    vector< DMatch > good_matches;
-
-    for( int i = 0; i < descriptors_object.rows; i++ )
-    {
-        if( matches[i].distance < 2 * getMin_dist() )
-        {
-            good_matches.push_back( matches[i]);
+    for(unsigned i = 0; i < matched1.size(); i++) {
+        Mat col = Mat::ones(3, 1, CV_64F);
+        col.at<double>(0) = matched1[i].pt.x;
+        col.at<double>(1) = matched1[i].pt.y;
+        col = homography * col;
+        col /= col.at<double>(2);
+        double dist = sqrt( pow(col.at<double>(0) - matched2[i].pt.x, 2) +
+                            pow(col.at<double>(1) - matched2[i].pt.y, 2));
+        if(dist < inlier_threshold) {
+            int new_i = static_cast<int>(inliers1.size());
+            inliers1.push_back(matched1[i]);
+            inliers2.push_back(matched2[i]);
+            good_matches.push_back(DMatch(new_i, new_i, 0));
         }
     }
 
-
-    Mat img_matches;
-
-    drawMatches( img_object, keypoints_object, img_scene, keypoints_scene,
-    good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
-    vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-
-    vector <Point2f> good_key2points_object,good_key2points_scene;
-//    vector <Point2i> good_keyInt_object, good_keyInt_scene;
-
-    for(int i = 0; i < good_matches.size(); i++){
-        good_key2points_object.push_back(keypoints_object[good_matches[i].queryIdx].pt);
-        good_key2points_scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
-    }
-   // useMatHomogeneus(keypoints_object, keypoints_scene, good_matches, img_matches, img_object);
-
     return good_matches.size();
-
-   // good_key2points_object = changeBasicZero(good_key2points_object,good_matches.size());
-   // good_key2points_scene = changeBasicZero(good_key2points_scene,good_matches.size());
-
-   // showPoint2fVectors(good_key2points_object,"obj");
-
-   // good_key2points_object = changeVectorFloatToBinary(good_key2points_object);
-   // good_key2points_scene = changeVectorFloatToBinary(good_key2points_scene);
-
-    //showFloatVector(good_key2points_scene);
-
 }
 
 void showFloatVector(vector<Point2f> v)
