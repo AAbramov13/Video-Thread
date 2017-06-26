@@ -15,6 +15,13 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include <opencv2/xfeatures2d/cuda.hpp>
 #include "opencv2/highgui.hpp"
+#include <stdlib.h>
+#include <stdio.h>
+
+// рассчитать хеш картинки
+int64 calcImageHash(IplImage* image, bool show_results=false);
+// рассчёт расстояния Хэмминга
+int64 calcHammingDistance(int64 x, int64 y);
 
 //initial
 using namespace std;
@@ -66,9 +73,7 @@ void StichingThread::run()
     cout << "start 2nd tread"<<endl;
 
     countBufferImage =0;
-    maxCountBufferImg=40;
-    bufferImg1[maxCountBufferImg];
-    bufferImg2[maxCountBufferImg];
+    maxCountBufferImg=20;
     while(m_running){
             getRoiRegion(m_image,m_image_2);
     }
@@ -79,8 +84,6 @@ void showFloatVector(vector<Point2f> v);
 
 void StichingThread::getRoiRegion(Mat img_1, Mat img_2)
 {
-    cout<<"get roi region"<<endl;
-
     //всякая хрень с размерностью
     int height_left_image = img_1.rows;
     int width_left_image = img_1.cols;
@@ -117,48 +120,171 @@ int StichingThread::minCount(int x, int y)
 
 void StichingThread::createBuffer(Mat img1, Mat img2)
 {
-    cout << "start create buffer"<<endl;
-
+    char c;
     if(countBufferImage<maxCountBufferImg){
-    bufferImg1[countBufferImage] = img1;
-    bufferImg2[countBufferImage] = img2;
+    img1.copyTo(bufferImg1[countBufferImage],img1);
+    img2.copyTo(bufferImg2[countBufferImage],img2);
     countBufferImage++;
-    }
-    else{
-        createCompairArray(bufferImg1,bufferImg2);
+    c = cvWaitKey(40);
+    cout<< "count buffer in image " << countBufferImage<<endl;
+    }else{
+        m_running = false;
+        caompairImage(bufferImg1,bufferImg2);
     }
 
 }
 
-void StichingThread::createCompairArray(Mat bufferImg1[], Mat bufferImg2[])
+void StichingThread::caompairImage(Mat bufferImg1[], Mat bufferImg2[])
 {
-    cout << "start compair max count"<<endl;
-
+    char c;
     int k = 0;
     for(int i = 0; i < maxCountBufferImg;i++){
         for (int j = 0; j < maxCountBufferImg;j++){
-            countDotArray[k][0]= findDescriptors(bufferImg1[i],bufferImg2[j]);
+            c=cvWaitKey(40);
+            imshow("buffer",bufferImg1[i]);
+            imshow("buffer2",bufferImg2[j]);
+            countDotArray[k][0]= countHashAndHemming(bufferImg1[i],bufferImg2[j]);
             countDotArray[k][1]= i;
             countDotArray[k][2] = j;
+            cout << countDotArray[k][0] << " "<<countDotArray[k][1]<<" "<<countDotArray[k][2]<<endl;
             k++;
         }
     }
 
+
+    compairCountControlPoints(countDotArray);
+
+
+}
+
+int StichingThread::countHashAndHemming(Mat img1, Mat img2)
+{
+
+    IplImage* object = new IplImage(img1);
+    IplImage* image = new IplImage(img2);
+
+    // построим хэш
+    int64 hashO = calcImageHash(object, true);
+    //cvWaitKey(0);
+    int64 hashI = calcImageHash(image, false);
+
+    // рассчитаем расстояние Хэмминга
+    int64 dist = calcHammingDistance(hashO, hashI);
+
+    return dist;
+
+}
+
+
+// рассчитать хеш картинки
+int64 calcImageHash(IplImage* src, bool show_results)
+{
+        if(!src){
+                return 0;
+        }
+
+        IplImage *res=0, *gray=0, *bin =0;
+
+        res = cvCreateImage( cvSize(8, 8), src->depth, src->nChannels);
+        gray = cvCreateImage( cvSize(8, 8), IPL_DEPTH_8U, 1);
+        bin = cvCreateImage( cvSize(8, 8), IPL_DEPTH_8U, 1);
+
+        // уменьшаем картинку
+        cvResize(src, res);
+        // переводим в градации серого
+        cvCvtColor(res, gray, CV_BGR2GRAY);
+        // вычисляем среднее
+        CvScalar average = cvAvg(gray);
+        // получим бинарное изображение относительно среднего
+        // для этого воспользуемся пороговым преобразованием
+        cvThreshold(gray, bin, average.val[0], 255, CV_THRESH_BINARY);
+
+        // построим хэш
+        int64 hash = 0;
+
+        int i=0;
+        // пробегаемся по всем пикселям изображения
+        for( int y=0; y<bin->height; y++ ) {
+                uchar* ptr = (uchar*) (bin->imageData + y * bin->widthStep);
+                for( int x=0; x<bin->width; x++ ) {
+                        // 1 канал
+                        if(ptr[x]){
+                                 hash |= 1<<i;
+                        }
+                        i++;
+                }
+        }
+
+
+        if(show_results){
+                // увеличенные картинки для отображения результатов
+                IplImage* dst3 = cvCreateImage( cvSize(128, 128), IPL_DEPTH_8U, 3);
+                IplImage* dst1 = cvCreateImage( cvSize(128, 128), IPL_DEPTH_8U, 1);
+                cvReleaseImage(&dst3);
+                cvReleaseImage(&dst1);
+        }
+
+        // освобождаем ресурсы
+        cvReleaseImage(&res);
+        cvReleaseImage(&gray);
+        cvReleaseImage(&bin);
+
+        return hash;
+}
+
+int64 calcHammingDistance(int64 x, int64 y)
+{
+        int64 dist = 0, val = x ^ y;
+
+        // Count the number of set bits
+        while(val)
+        {
+                ++dist;
+                val &= val - 1;
+        }
+
+        return dist;
+}
+
+
+
+void StichingThread::createCompairArray(Mat bufferImg1[], Mat bufferImg2[])
+{
+    cout << "start compair max count"<<endl;
+    char c;
+    int k = 0;
+    for(int i = 0; i < maxCountBufferImg;i++){
+        for (int j = 0; j < maxCountBufferImg;j++){
+            c=cvWaitKey(10);
+            imshow("buffer",bufferImg1[i]);
+            imshow("buffer2",bufferImg2[j]);
+            countDotArray[k][0]= findDescriptors(bufferImg1[i],bufferImg2[j]);
+            countDotArray[k][1]= i;
+            countDotArray[k][2] = j;
+            cout << countDotArray[k][0] << " "<<countDotArray[k][1]<<" "<<countDotArray[k][2]<<endl;
+            k++;
+
+        }
+    }
+
+    cout << "end compair max count"<<endl;
     compairCountControlPoints(countDotArray);
 }
 
 void StichingThread::compairCountControlPoints(int array[][3])
 {
-    int maxCountControlPoints[3]={0,0,0};
-    for(int i = 0; i< maxCountBufferImg^2;i++){
-        if(array[i][0]>maxCountControlPoints[0]){
+    cout << "start compair control points"<<endl;
+
+    int maxCountControlPoints[3]={100,0,0};
+    for(int i = 0; i< maxCountBufferImg*maxCountBufferImg;i++){
+        if(array[i][0]<=maxCountControlPoints[0]){
             maxCountControlPoints[0] = array[i][0];
             maxCountControlPoints[1] = array[i][1];
             maxCountControlPoints[2] = array[i][2];
         }
     }
 
-cout<<maxCountControlPoints[0]<<endl;
+    cout<<maxCountControlPoints[0]<<" "<<maxCountControlPoints[1]<<" "<<maxCountControlPoints[2]<<endl;
 
 }
 
@@ -212,6 +338,7 @@ int StichingThread::findDescriptors(Mat img_object, Mat img_scene)
         good_key2points_object.push_back(keypoints_object[good_matches[i].queryIdx].pt);
         good_key2points_scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
     }
+   // useMatHomogeneus(keypoints_object, keypoints_scene, good_matches, img_matches, img_object);
 
     return good_matches.size();
 
@@ -225,7 +352,6 @@ int StichingThread::findDescriptors(Mat img_object, Mat img_scene)
 
     //showFloatVector(good_key2points_scene);
 
-    //useMatHomogeneus(keypoints_object, keypoints_scene, good_matches, img_matches, img_object);
 }
 
 void showFloatVector(vector<Point2f> v)
@@ -403,7 +529,7 @@ void StichingThread::useMatHomogeneus(vector<KeyPoint> keypoints_object, vector<
         scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
     }
 
-        cout << obj.size() << " "<< scene.size() << endl;
+        //cout << obj.size() << " "<< scene.size() << endl;
     Mat H = findHomography( obj, scene, CV_RANSAC );
 
     std::vector<Point2f> obj_corners(4);
@@ -425,5 +551,3 @@ void StichingThread::useMatHomogeneus(vector<KeyPoint> keypoints_object, vector<
 
     imshow( "result", img_matches );
 }
-
-
