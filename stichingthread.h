@@ -1,5 +1,5 @@
-#ifndef SYNCHROTHREAD_H
-#define SYNCHROTHREAD_H
+#ifndef STICHINGTHREAD_H
+#define STICHINGTHREAD_H
 
 #include <QObject>
 
@@ -9,7 +9,7 @@
 using namespace std;
 using namespace cv;
 
-class SynchroThread : public QObject
+class StichingThread : public QObject
 {
     Q_OBJECT
 
@@ -20,14 +20,17 @@ class SynchroThread : public QObject
     double max_dist;
     double min_dist;
     int maxCountBufferImg;
-    Mat bufferImg1[];
-    Mat bufferImg2[];
+    Mat* bufferImg1 = new Mat[20];
+    Mat* bufferImg2 = new Mat[20];
+
+//    Mat bufferImg1[];
+//    Mat bufferImg2[];
     int countBufferImage;
     int countDotArray[][3];
     //[][0-кол-во векторов;1-id img1;2-id img2]
 
 public:
-    SynchroThread();
+    StichingThread();
     bool running() const;
     Mat image() const;
     Mat image_2() const;
@@ -52,6 +55,8 @@ public slots:
     void getRoiRegion(Mat img_1,Mat img_2);
     int minCount(int x, int y);
     void createBuffer(Mat img1, Mat img2);
+    void caompairImage(Mat bufferImg1[],Mat bufferImg2[]);
+    int countHashAndHemming(Mat img1, Mat img2);
     void createCompairArray(Mat bufferImg1[],Mat bufferImg2[]);
     void compairCountControlPoints(int array[][3]);
     int findDescriptors(Mat left_image, Mat right_image);
@@ -70,4 +75,4 @@ public slots:
     void useMatHomogeneus(vector<KeyPoint> keypoints_object,vector<KeyPoint> keypoints_scene,vector< DMatch > good_matches,Mat img_matches,Mat img_object);
 };
 
-#endif // SYNCHROTHREAD_H
+#endif // STICHINGTHREAD_H
